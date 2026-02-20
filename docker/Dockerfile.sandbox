@@ -1,0 +1,31 @@
+FROM python:3.11-slim
+
+# System deps for common Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    gcc \
+    g++ \
+    make \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for sandbox isolation
+RUN useradd -ms /bin/bash sandboxuser
+
+WORKDIR /repo
+
+# Install test dependencies (will be overridden by mounted requirements)
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt || true
+
+# Switch to non-root
+USER sandboxuser
+
+# Deterministic seed
+ENV PYTHONHASHSEED=42
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Default: run pytest on /repo
+CMD ["python", "-m", "pytest", "/repo", "--tb=short", "-q", \
+     "--json-report", "--json-report-file=/tmp/report.json"]
