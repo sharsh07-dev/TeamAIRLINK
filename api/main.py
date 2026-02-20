@@ -31,9 +31,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Determine absolute path for results
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RESULTS_DIR = os.path.join(BASE_DIR, "backend", "results")
+# Determine absolute path for results - Use /tmp for serverless environments
+if os.environ.get("VERCEL") or os.environ.get("NETLIFY"):
+    RESULTS_DIR = "/tmp/results"
+else:
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    RESULTS_DIR = os.path.join(BASE_DIR, "backend", "results")
 
 # Ensure results directory exists
 os.makedirs(RESULTS_DIR, exist_ok=True)
@@ -42,6 +45,10 @@ logger.info(f"Using results directory: {RESULTS_DIR}")
 @app.get("/")
 async def root():
     return {"status": "AI Core Online", "version": "1.0.0"}
+
+@app.get("/favicon.ico")
+async def favicon():
+    return {"status": "ok"}
 
 @app.get("/runs")
 async def list_runs():

@@ -1,10 +1,5 @@
-"""
-backend/orchestrator/graph.py
-===============================
-LangGraph Orchestrator — The master control graph for the CI/CD Healing Agent.
-"""
-
-from __future__ import annotations
+import os
+from pathlib import Path
 
 import time
 from typing import Any, Dict, Literal
@@ -23,6 +18,8 @@ from backend.agents.validation_agent import ValidationAgent
 from backend.utils.logger import logger, setup_logger
 from backend.utils.models import AgentState, CIStatus
 from config.settings import settings
+
+IS_SERVERLESS = os.environ.get("VERCEL") or os.environ.get("NETLIFY")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -178,7 +175,10 @@ def run_healing_pipeline(
     Execute full healing pipeline with progressive updates.
     """
     from pathlib import Path
-    log_dir = Path("backend/results") / run_id / "logs"
+    if IS_SERVERLESS:
+         log_dir = Path("/tmp/results") / run_id / "logs"
+    else:
+         log_dir = Path("backend/results") / run_id / "logs"
     setup_logger(run_id, log_dir)
 
     logger.info("=" * 70)

@@ -9,8 +9,15 @@ from backend.utils.models import AgentState
 
 logger = logging.getLogger(__name__)
 
+IS_SERVERLESS = os.environ.get("VERCEL") or os.environ.get("NETLIFY")
 APP_DIR = os.getcwd()
-WORKSPACE_DIR = os.path.join(APP_DIR, "backend", "workspace")
+
+if IS_SERVERLESS:
+    WORKSPACE_DIR = "/tmp/workspace"
+    RESULTS_DIR = "/tmp/results"
+else:
+    WORKSPACE_DIR = os.path.join(APP_DIR, "backend", "workspace")
+    RESULTS_DIR = os.path.join(APP_DIR, "backend", "results")
 
 def run_healing_agent(repo_url: str, branch_name: str, run_id: str):
     """
@@ -21,8 +28,7 @@ def run_healing_agent(repo_url: str, branch_name: str, run_id: str):
     """
     logger.info(f"Starting agent run {run_id} for {repo_url} on {branch_name}")
     
-    results_dir = os.path.join(APP_DIR, "backend", "results")
-    os.makedirs(results_dir, exist_ok=True)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
     
     repo_dir = os.path.join(WORKSPACE_DIR, run_id)
     
@@ -138,14 +144,12 @@ def _write_results(state: AgentState):
         "leader_name": leader_name
     }
 
-    results_dir = os.path.join(APP_DIR, "backend", "results")
-    result_file = os.path.join(results_dir, f"{state.run_id}.json")
+    result_file = os.path.join(RESULTS_DIR, f"{state.run_id}.json")
     with open(result_file, 'w') as f:
         json.dump(result_data, f, indent=2)
 
 def _write_failure(repo_url: str, branch_name: str, run_id: str, error_msg: str):
-    results_dir = os.path.join(APP_DIR, "backend", "results")
-    result_file = os.path.join(results_dir, f"{run_id}.json")
+    result_file = os.path.join(RESULTS_DIR, f"{run_id}.json")
     failure_data = {
         "repo_url": repo_url,
         "branch_name": branch_name,
