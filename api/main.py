@@ -7,8 +7,13 @@ import logging
 from uuid import uuid4
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import sys
 from api.models import RunResult, RunAgentRequest
-from backend.orchestrator.main import run_healing_agent # As per Integration Contract
+
+# Add project root to sys.path for serverless environments
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -98,6 +103,7 @@ def _background_agent_runner(repo_url: str, branch_name: str, run_id: str):
         asyncio.set_event_loop(loop)
         # However, FastAPI's BackgroundTasks run in a separate thread pool for sync functions automatically? 
         # Actually starlette/fastapi runs sync background tasks in a threadpool.
+        from backend.orchestrator.main import run_healing_agent
         run_healing_agent(repo_url, branch_name, run_id)
         logger.info(f"Healing agent completed for {run_id}")
     except Exception as e:
@@ -141,6 +147,7 @@ async def run_agent(request: RunAgentRequest, background_tasks: BackgroundTasks)
 
         # Trigger Background Task
         # FastAPI handles sync functions in background tasks by running them in a threadpool.
+        from backend.orchestrator.main import run_healing_agent
         background_tasks.add_task(run_healing_agent, request.repo_url, expected_branch, run_id)
         
         return {
